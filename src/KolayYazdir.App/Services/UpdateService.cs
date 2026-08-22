@@ -11,10 +11,9 @@ namespace KolayYazdir.App.Services;
 public sealed class UpdateService(string repositoryUrl)
 {
     /// <summary>
-    /// Sürümlerin yayımlandığı depo. Depo özel olduğu sürece kurulu uygulamanın
-    /// güncelleme kontrolü sessizce başarısız olur — indirme için erişim
-    /// gerekiyor. Depo herkese açık yapıldığında güncelleme kendiliğinden
-    /// çalışmaya başlar.
+    /// Sürümlerin yayımlandığı depo. Herkese açık olmak zorunda: Velopack özel
+    /// depodan indirmek için erişim anahtarı ister ve o anahtarı dağıtılan bir
+    /// exe'nin içine gömmek onu herkese vermek demektir.
     /// </summary>
     public const string RepositoryUrl = "https://github.com/ardaaboz/kolay-yazdir";
 
