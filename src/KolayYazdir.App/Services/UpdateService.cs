@@ -11,11 +11,12 @@ namespace KolayYazdir.App.Services;
 public sealed class UpdateService(string repositoryUrl)
 {
     /// <summary>
-    /// Depo adresi. GitHub deposu oluşturulduğunda gerçek adresle değiştirilir;
-    /// o ana kadar güncelleme kontrolü sessizce başarısız olur ve uygulamanın
-    /// çalışmasını etkilemez.
+    /// Sürümlerin yayımlandığı depo. Depo özel olduğu sürece kurulu uygulamanın
+    /// güncelleme kontrolü sessizce başarısız olur — indirme için erişim
+    /// gerekiyor. Depo herkese açık yapıldığında güncelleme kendiliğinden
+    /// çalışmaya başlar.
     /// </summary>
-    public const string RepositoryUrl = "https://github.com/KULLANICI/kolay-yazdir";
+    public const string RepositoryUrl = "https://github.com/ardaaboz/kolay-yazdir";
 
     public async Task CheckInBackgroundAsync()
     {
