@@ -124,14 +124,10 @@ public class OfficeConverterTests : IDisposable
         Assert.True(rasterizer.PageCount >= 1);
     }
 
-    [Fact]
-    public void At_least_one_real_converter_is_available_on_this_machine()
-    {
-        // Bu makinede hiçbiri yoksa Word/Excel yazdırma hiç çalışmaz; sessizce
-        // geçmek yerine bilinsin.
-        Assert.True(OfficeConverterChain.Default.IsAvailable,
-            "Ne Microsoft Office ne LibreOffice bulundu — Word/Excel yazdırılamaz.");
-    }
+    // "Bu makinede Office veya LibreOffice kurulu mu" bir ortam koşulu, kod
+    // davranışı değil — testte yeri yok. Kurulu değilse kullanıcı Word dosyası
+    // eklediğinde satırda LibreOffice'i adıyla söyleyen bir hata görür;
+    // Chain_with_no_available_converter_names_libre_office bunu doğruluyor.
 
     /// <summary>Gerçek bir dosya üreten, çağrıldığını kaydeden sahte dönüştürücü.</summary>
     private sealed class StubConverter(string name, bool available, bool throws = false) : IOfficeConverter
