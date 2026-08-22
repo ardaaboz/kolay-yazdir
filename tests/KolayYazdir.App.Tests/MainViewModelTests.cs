@@ -236,11 +236,11 @@ public class MainViewModelTests : IDisposable
     }
 
     [Fact]
-    public void Printing_with_no_files_asks_for_files_instead_of_failing()
+    public async Task Printing_with_no_files_asks_for_files_instead_of_failing()
     {
         using var viewModel = new MainViewModel();
 
-        Assert.Equal(PrintOutcome.NothingToPrint, viewModel.Print());
+        Assert.Equal(PrintOutcome.NothingToPrint, await viewModel.PrintAsync());
     }
 
     [Fact]

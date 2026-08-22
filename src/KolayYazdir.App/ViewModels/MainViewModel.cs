@@ -55,7 +55,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
 
     /// <summary>Elle önlü arkalıda ikinci geçişi çalıştıran eylem.</summary>
-    public Action? PendingSecondPass { get; private set; }
+    public Func<Task>? PendingSecondPass { get; private set; }
 
     public PrintSettings CurrentSettings => new()
     {
@@ -249,6 +249,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>Listedeki dosyaları yeniden açar ve yerleşimi tazeler.</summary>
     public async Task ReloadDocumentsAsync(CancellationToken ct)
     {
+        // Arka planda süren bir önizleme çizimi eski belgeleri okuyor olabilir;
+        // onları kapatmadan önce çizimi durduruyoruz.
+        _previewWork?.Cancel();
+
         _documents?.Dispose();
         _documents = null;
 
@@ -286,7 +290,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// Yazdırır. Dosya seçilmemişse hata vermez — çağıran görünüm dosya seçme
     /// penceresini açar, kullanıcı doğru yere yönlendirilmiş olur.
     /// </summary>
-    public PrintOutcome Print()
+    /// <remarks>
+    /// Baskı arka planda koşar. Sayfalar 300 DPI'da render edildiği için 35'li
+    /// bir iş saniyeler sürebilir; bunu arayüz iş parçacığında yapmak pencereyi
+    /// dondururdu.
+    /// </remarks>
+    public async Task<PrintOutcome> PrintAsync()
     {
         if (_documents is not { } documents || _sheets.Count == 0) return PrintOutcome.NothingToPrint;
 
@@ -301,7 +310,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         if (!needsManualDuplex)
         {
-            runner.Run(SheetsForPrinting(), settings, printerName, DriverHandlesCopies);
+            var sheets = SheetsForPrinting();
+            var driverCopies = DriverHandlesCopies;
+
+            await Task.Run(() => runner.Run(sheets, settings, printerName, driverCopies));
             return PrintOutcome.Done;
         }
 
@@ -310,8 +322,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         var plan = ManualDuplexPlan.Split(LayoutEngine.Repeat(_sheets, Copies));
         var simplex = settings with { Duplex = DuplexMode.Simplex, Copies = 1 };
 
-        runner.Run(plan.FirstPass, simplex, printerName, driverHandlesCopies: false);
-        PendingSecondPass = () => runner.Run(plan.SecondPass, simplex, printerName, driverHandlesCopies: false);
+        await Task.Run(() => runner.Run(plan.FirstPass, simplex, printerName, driverHandlesCopies: false));
+
+        PendingSecondPass = () =>
+            Task.Run(() => runner.Run(plan.SecondPass, simplex, printerName, driverHandlesCopies: false));
 
         return PrintOutcome.NeedsPaperFlip;
     }

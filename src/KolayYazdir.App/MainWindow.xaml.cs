@@ -123,9 +123,9 @@ public partial class MainWindow : Window
         return (element as ListBoxItem)?.DataContext as FileEntry;
     }
 
-    private void Print_Click(object sender, RoutedEventArgs e)
+    private async void Print_Click(object sender, RoutedEventArgs e)
     {
-        switch (_viewModel.Print())
+        switch (await _viewModel.PrintAsync())
         {
             case PrintOutcome.NothingToPrint:
                 PickFiles_Click(sender, e);
@@ -143,7 +143,10 @@ public partial class MainWindow : Window
                     "sonra Tamam'a bas.",
                     "Önlü arkalı", MessageBoxButton.OKCancel, MessageBoxImage.Information);
 
-                if (answer == MessageBoxResult.OK) _viewModel.PendingSecondPass?.Invoke();
+                if (answer == MessageBoxResult.OK && _viewModel.PendingSecondPass is { } secondPass)
+                {
+                    await secondPass();
+                }
                 break;
         }
     }
