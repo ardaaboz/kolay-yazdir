@@ -1,0 +1,52 @@
+name: Sürüm
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Testleri çalıştır
+        run: dotnet test --configuration Release
+
+      - name: Sürüm numarasını etiketten al
+        id: version
+        shell: bash
+        run: echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Yayınla
+        run: >
+          dotnet publish src/KolayYazdir.App
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          --output publish
+
+      - name: Velopack paketini üret
+        run: |
+          dotnet tool install -g vpk
+          vpk pack `
+            --packId KolayYazdir `
+            --packVersion ${{ steps.version.outputs.value }} `
+            --packDir publish `
+            --mainExe KolayYazdir.exe `
+            --packTitle "Kolay Yazdır"
+
+      - name: GitHub sürümüne yükle
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Releases/*
+          generate_release_notes: true
