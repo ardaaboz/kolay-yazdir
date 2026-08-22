@@ -1,0 +1,190 @@
+<Window x:Class="KolayYazdir.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:KolayYazdir.App.Controls"
+        xmlns:vm="clr-namespace:KolayYazdir.App.ViewModels"
+        Title="Kolay Yazdır" Height="780" Width="1100" MinHeight="640" MinWidth="920"
+        Background="{StaticResource Background}" AllowDrop="True"
+        DragOver="FileList_DragOver" Drop="FileList_Drop"
+        FontFamily="Segoe UI" UseLayoutRounding="True">
+
+  <Window.Resources>
+    <vm:TurkishLabelConverter x:Key="Label"/>
+  </Window.Resources>
+
+  <DockPanel>
+    <Border DockPanel.Dock="Top" Background="{StaticResource Panel}"
+            BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="14,10">
+      <DockPanel>
+        <TextBlock Text="Yazdır" Foreground="{StaticResource PrimaryText}" FontSize="14" FontWeight="Medium"/>
+        <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right"
+                   Text="{Binding PrinterStatus}" FontSize="12" VerticalAlignment="Center">
+          <TextBlock.Style>
+            <Style TargetType="TextBlock">
+              <Setter Property="Foreground" Value="{StaticResource SecondaryText}"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding PrinterIsHealthy}" Value="False">
+                  <Setter Property="Foreground" Value="{StaticResource Danger}"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </TextBlock.Style>
+        </TextBlock>
+      </DockPanel>
+    </Border>
+
+    <Border DockPanel.Dock="Left" Width="270" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
+      <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,12,14,12">
+        <StackPanel>
+
+          <Button Style="{StaticResource AccentButton}" Content="Dosya seç" Click="PickFiles_Click"/>
+
+          <Border Margin="0,12,0,0" BorderBrush="{StaticResource ControlLine}" BorderThickness="1"
+                  CornerRadius="6" MinHeight="64" Padding="6">
+            <ListBox x:Name="FileList" Background="Transparent" BorderThickness="0"
+                     ItemsSource="{Binding Files}" AllowDrop="True"
+                     DragOver="FileList_DragOver" Drop="FileList_Drop"
+                     PreviewMouseLeftButtonDown="FileList_PreviewMouseLeftButtonDown"
+                     PreviewMouseMove="FileList_PreviewMouseMove"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+              <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                  <Setter Property="Background" Value="Transparent"/>
+                  <Setter Property="Padding" Value="2"/>
+                  <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                </Style>
+              </ListBox.ItemContainerStyle>
+              <ListBox.ItemTemplate>
+                <DataTemplate>
+                  <DockPanel ToolTip="{Binding Path}">
+                    <Button DockPanel.Dock="Right" Content="✕" Width="20" Height="20"
+                            Style="{StaticResource QuietButton}" FontSize="11"
+                            Foreground="{StaticResource SecondaryText}"
+                            Click="RemoveFile_Click" Tag="{Binding}"/>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding PageLabel}" FontSize="11"
+                               Margin="6,0" VerticalAlignment="Center">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                          <Setter Property="Foreground" Value="{StaticResource SecondaryText}"/>
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasError}" Value="True">
+                              <Setter Property="Foreground" Value="{StaticResource Danger}"/>
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Text="{Binding FileName}" FontSize="12" TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                          <Setter Property="Foreground" Value="#E8E8E8"/>
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasError}" Value="True">
+                              <Setter Property="Foreground" Value="{StaticResource Danger}"/>
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                  </DockPanel>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Border>
+
+          <TextBlock Style="{StaticResource SectionLabel}" Margin="0,14,0,5" Text="Kağıt boyutu"/>
+          <controls:SegmentedControl x:Name="PaperSelector" LabelConverter="{StaticResource Label}"
+                                     SelectedValue="{Binding PaperSize, Mode=TwoWay}"/>
+
+          <TextBlock Style="{StaticResource SectionLabel}" Margin="0,12,0,5" Text="Yön"/>
+          <controls:SegmentedControl x:Name="OrientationSelector" LabelConverter="{StaticResource Label}"
+                                     SelectedValue="{Binding Orientation, Mode=TwoWay}"/>
+
+          <TextBlock Style="{StaticResource SectionLabel}" Margin="0,12,0,5" Text="Renk"/>
+          <controls:SegmentedControl x:Name="ColorSelector" LabelConverter="{StaticResource Label}"
+                                     SelectedValue="{Binding Color, Mode=TwoWay}"/>
+
+          <TextBlock Style="{StaticResource SectionLabel}" Margin="0,12,0,5" Text="Yüz"/>
+          <controls:SegmentedControl x:Name="DuplexSelector" LabelConverter="{StaticResource Label}"
+                                     SelectedValue="{Binding Duplex, Mode=TwoWay}"/>
+          <TextBlock Text="{Binding BindingHint}" Foreground="{StaticResource SecondaryText}"
+                     FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap"/>
+
+          <TextBlock Style="{StaticResource SectionLabel}" Margin="0,12,0,5" Text="Kağıt cinsi"/>
+          <ComboBox ItemsSource="{Binding MediaTypes}" SelectedItem="{Binding MediaType, Mode=TwoWay}"
+                    DisplayMemberPath="Name"/>
+
+          <TextBlock Style="{StaticResource SectionLabel}" Margin="0,12,0,5" Text="Sayfaya yerleşim"/>
+          <controls:SegmentedControl x:Name="NUpSelector" LabelConverter="{StaticResource Label}"
+                                     SelectedValue="{Binding PagesPerSheet, Mode=TwoWay}"/>
+
+          <CheckBox Margin="0,14,0,0" Content="Sayfaya sığdır" IsChecked="{Binding FitToPage, Mode=TwoWay}"
+                    ToolTip="Kapalıyken içerik gerçek boyutunda basılır, sadece taşarsa küçültülür."/>
+          <CheckBox Margin="0,8,0,0" Content="İçeriği hücreye göre döndür"
+                    IsChecked="{Binding AutoRotate, Mode=TwoWay}"/>
+
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="8"/>
+              <ColumnDefinition Width="80"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+              <TextBlock Style="{StaticResource SectionLabel}" Text="Sayfa aralığı"/>
+              <TextBox Text="{Binding PageRange, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                       ToolTip="Örnek: 1-5, 8, 11-13. Boş bırakılırsa tümü basılır."/>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Style="{StaticResource SectionLabel}" Text="Kopya"/>
+              <TextBox Text="{Binding Copies, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+            </StackPanel>
+          </Grid>
+
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+
+    <Grid Background="{StaticResource PreviewBackground}">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+        <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+
+      <DockPanel Grid.Row="0" Margin="12,12,12,8">
+        <TextBlock Text="Önizleme" Foreground="{StaticResource SecondaryText}" FontSize="11"
+                   VerticalAlignment="Center"/>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+          <Button Content="‹" Width="26" Height="24" FontSize="16"
+                  Style="{StaticResource QuietButton}" Command="{Binding PreviousSheetCommand}"/>
+          <TextBlock Text="{Binding SheetLabel}" Margin="8,0" VerticalAlignment="Center"
+                     Foreground="{StaticResource PrimaryText}" FontSize="11"/>
+          <Button Content="›" Width="26" Height="24" FontSize="16"
+                  Style="{StaticResource QuietButton}" Command="{Binding NextSheetCommand}"/>
+        </StackPanel>
+      </DockPanel>
+
+      <Border Grid.Row="1" Margin="12,0" Background="{StaticResource PreviewStage}"
+              BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6">
+        <Grid>
+          <Image Source="{Binding PreviewImage}" Margin="20" RenderOptions.BitmapScalingMode="HighQuality"/>
+          <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                      Visibility="{Binding PreviewImage, Converter={StaticResource NullToVisible}}">
+            <TextBlock Text="Yazdırmak için dosya seç" Foreground="{StaticResource SecondaryText}"
+                       FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,14"/>
+            <Button Style="{StaticResource AccentButton}" Content="Dosya seç" Padding="22,10"
+                    Click="PickFiles_Click"/>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <DockPanel Grid.Row="2" Margin="12">
+        <TextBlock Text="{Binding JobSummary}" VerticalAlignment="Center"
+                   Foreground="{StaticResource SecondaryText}" FontSize="11"/>
+        <Button DockPanel.Dock="Right" HorizontalAlignment="Right" Style="{StaticResource AccentButton}"
+                Content="Yazdır" Padding="30,12" FontSize="14" Click="Print_Click"/>
+      </DockPanel>
+    </Grid>
+  </DockPanel>
+</Window>
