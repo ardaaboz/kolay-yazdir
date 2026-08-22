@@ -66,4 +66,30 @@ public static class LayoutEngine
 
         return sheets;
     }
+
+    /// <summary>
+    /// Yaprak listesini harmanlanmış olarak çoğaltır (1,2,3 – 1,2,3). Sürücü
+    /// kopyalamayı desteklemediğinde kullanılır. Yerleşim yeniden hesaplanmaz;
+    /// yapraklar olduğu gibi tekrarlanır, sadece yaprak numaraları kayar.
+    /// </summary>
+    public static IReadOnlyList<Sheet> Repeat(IReadOnlyList<Sheet> sheets, int copies)
+    {
+        if (copies <= 1 || sheets.Count == 0) return sheets;
+
+        // Bir kopyadaki farklı fiziksel yaprak sayısı. Listenin uzunluğu değil:
+        // dupleks işlerde iki yüz tek yaprağa denk gelir, uzunluğu kullanmak
+        // ikinci kopyanın numaralarını iki kat atlatırdı.
+        var leavesPerCopy = sheets[^1].Index + 1;
+
+        var result = new List<Sheet>(sheets.Count * copies);
+        for (var copy = 0; copy < copies; copy++)
+        {
+            foreach (var sheet in sheets)
+            {
+                result.Add(sheet with { Index = sheet.Index + copy * leavesPerCopy });
+            }
+        }
+
+        return result;
+    }
 }
