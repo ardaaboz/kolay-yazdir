@@ -70,6 +70,15 @@ public class LayoutEngineDuplexTests
     }
 
     [Fact]
+    public void Blank_back_shares_the_leaf_index()
+    {
+        var sheets = LayoutEngine.Build(Pages(3), Duplex(), FullBleed);
+
+        Assert.Equal([0, 0, 1, 1], sheets.Select(s => s.Index));
+        Assert.True(sheets[3].IsBlank);
+    }
+
+    [Fact]
     public void Simplex_never_produces_a_blank_side()
     {
         var sheets = LayoutEngine.Build(Pages(3), new PrintSettings(), FullBleed);
