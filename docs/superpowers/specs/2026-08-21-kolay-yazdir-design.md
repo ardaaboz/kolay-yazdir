@@ -67,7 +67,7 @@ Dosyalar
               (hangi sayfa, hangi dikdörtgene, kaç derece)
                           ↙          ↘
                  SheetRenderer    SheetRenderer
-                   @ ~110 dpi       @ 600 dpi
+                   @ ~110 dpi       @ 300 dpi
                         ↓                ↓
                    Önizleme          Yazıcı (DEVMODE)
 ```
@@ -85,6 +85,8 @@ Dosyalar
 **PrinterCapabilities** — Win32 `DeviceCapabilities` ile sürücüden kağıt cinsi isimlerini (`DC_MEDIATYPENAMES`), dupleks desteğini (`DC_DUPLEX`) ve renk desteğini (`DC_COLORDEVICE`) okur.
 
 **PrintJob** — DEVMODE'u kurar (kağıt boyutu, yön, dupleks modu, renk, kağıt cinsi, kopya) ve `PrintDocument` ile sayfa sayfa bastırır. Sayfalar tek tek render edilir, hiçbir zaman hepsi birden bellekte tutulmaz.
+
+Baskı çözünürlüğü 300 DPI'dır. A4 bir sayfa 300 DPI'da yaklaşık 34 MB bellek tutar; 600 DPI'a çıkmak bunu 139 MB'a taşıyacağı için sayfayı şeritler halinde render etmek gerekirdi. Lazer çıktıda 300 DPI ile 600 DPI arasındaki fark gözle ayırt edilemeyecek düzeyde olduğundan bu karmaşıklığa girilmez.
 
 **SettingsStore** — `%AppData%` altında JSON. Varsayılan klasör ve en son kullanılan ayarlar saklanır; uygulama bir sonraki açılışta aynı ayarlarla gelir.
 
