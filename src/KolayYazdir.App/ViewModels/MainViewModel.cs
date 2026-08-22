@@ -108,10 +108,18 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
 
         Capabilities = PrinterCapabilities.Read(name, PaperSize, Orientation);
-        PrinterIsHealthy = Capabilities is not null;
-        PrinterStatus = Capabilities is null ? $"{name} · ulaşılamıyor" : $"{name} · hazır";
 
-        if (Capabilities is null) return;
+        if (Capabilities is null)
+        {
+            PrinterIsHealthy = false;
+            PrinterStatus = $"{name} · ulaşılamıyor";
+            return;
+        }
+
+        // Kağıt bittiğini kullanıcı yazdırmaya basmadan görsün.
+        var health = PrinterHealth.Read(name);
+        PrinterIsHealthy = health.IsHealthy;
+        PrinterStatus = $"{name} · {health.Description}";
 
         if (MediaTypes.Count == 0)
         {
