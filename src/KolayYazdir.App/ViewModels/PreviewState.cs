@@ -16,19 +16,22 @@ public sealed class PreviewState
 
     public Sheet? Current => CurrentIndex < _sheets.Count ? _sheets[CurrentIndex] : null;
 
-    /// <summary>"Yaprak 2 / 4 · arka" biçiminde gösterge metni.</summary>
+    /// <summary>
+    /// Gezinme göstergesi. Tek yönlü baskıda her yaprak bir kağıt olduğu için
+    /// "Yaprak 2 / 3"; önlü arkalıda gezinilen şey kağıt değil yüz olduğundan
+    /// "Yüz 2 / 4 · arka" denir. Aynı kelimeyi iki farklı sayı için kullanmak —
+    /// alttaki özet fiziksel kağıdı sayarken — kullanıcıyı yanıltıyordu.
+    /// </summary>
     public string Label
     {
         get
         {
             if (Current is not { } sheet) return string.Empty;
 
-            var position = $"Yaprak {CurrentIndex + 1} / {_sheets.Count}";
+            if (!_sheets.Any(s => s.Side == SheetSide.Back))
+                return $"Yaprak {CurrentIndex + 1} / {_sheets.Count}";
 
-            // Tek yönlü baskıda "ön" demek gereksiz gürültü.
-            if (!_sheets.Any(s => s.Side == SheetSide.Back)) return position;
-
-            return $"{position} · {(sheet.Side == SheetSide.Front ? "ön" : "arka")}";
+            return $"Yüz {CurrentIndex + 1} / {_sheets.Count} · {(sheet.Side == SheetSide.Front ? "ön" : "arka")}";
         }
     }
 

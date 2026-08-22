@@ -87,11 +87,11 @@ public class PreviewStateTests
         var state = new PreviewState();
         state.Load(Sheets(3, DuplexMode.Duplex));
 
-        Assert.Equal("Yaprak 1 / 4 · ön", state.Label);
+        Assert.Equal("Yüz 1 / 4 · ön", state.Label);
 
         state.Next();
 
-        Assert.Equal("Yaprak 2 / 4 · arka", state.Label);
+        Assert.Equal("Yüz 2 / 4 · arka", state.Label);
     }
 
     [Fact]
