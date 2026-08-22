@@ -31,8 +31,9 @@ public static class PageRangeParser
                 continue;
             }
 
-            if (!TryBound(token[..dash], pageCount, clampToEnd: false, out var from)) continue;
-            if (!TryBound(token[(dash + 1)..], pageCount, clampToEnd: true, out var to)) continue;
+            var span = token.AsSpan();
+            if (!TryBound(span[..dash], pageCount, clampToEnd: false, out var from)) continue;
+            if (!TryBound(span[(dash + 1)..], pageCount, clampToEnd: true, out var to)) continue;
 
             if (from > to) (from, to) = (to, from);
             for (var i = from; i <= to; i++) selected.Add(i);
