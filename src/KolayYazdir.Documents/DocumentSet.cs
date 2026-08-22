@@ -32,6 +32,12 @@ public sealed class DocumentSet : IPageImageSource, IDisposable
 
     public IReadOnlyList<SourcePageInfo> Pages { get; }
 
+    public SizePt PageSize(int sourceIndex)
+    {
+        var (document, page) = Locate(sourceIndex);
+        return _documents[document].PageSize(page);
+    }
+
     public RasterPage Render(int sourceIndex, double dpi)
     {
         var (document, page) = Locate(sourceIndex);

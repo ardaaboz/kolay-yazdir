@@ -26,6 +26,14 @@ public interface IPageRasterizer : IDisposable
 /// <summary>Birleşik sayfa indeksinden piksel üretebilen kaynak.</summary>
 public interface IPageImageSource
 {
+    /// <summary>
+    /// Sayfanın punto cinsinden gerçek boyutu. Çizim katmanı bunu, sayfayı
+    /// hedef dikdörtgenine göre hangi çözünürlükte isteyeceğini hesaplamak için
+    /// kullanır: 35'li yerleşimde her sayfayı tam A4 çözünürlüğünde render etmek
+    /// boşa iş olurdu.
+    /// </summary>
+    SizePt PageSize(int sourceIndex);
+
     RasterPage Render(int sourceIndex, double dpi);
 }
 
