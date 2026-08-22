@@ -41,6 +41,25 @@ public class CellGridTests
     }
 
     [Fact]
+    public void Two_by_two_grid_cell_positions_respect_gutter_spacing()
+    {
+        var cells = CellGrid.Build(A4, FullBleed(A4), new GridSpec(2, 2));
+        var margin = Paper.MmToPt(5);
+        var gutter = Paper.MmToPt(3);
+        var expectedWidth = (A4.Width - 2 * margin - gutter) / 2;
+        var expectedHeight = (A4.Height - 2 * margin - gutter) / 2;
+
+        Assert.Equal(margin, cells[0].X, 3);
+        Assert.Equal(margin, cells[0].Y, 3);
+        Assert.Equal(margin + expectedWidth + gutter, cells[1].X, 3);
+        Assert.Equal(margin, cells[1].Y, 3);
+        Assert.Equal(margin, cells[2].X, 3);
+        Assert.Equal(margin + expectedHeight + gutter, cells[2].Y, 3);
+        Assert.Equal(margin + expectedWidth + gutter, cells[3].X, 3);
+        Assert.Equal(margin + expectedHeight + gutter, cells[3].Y, 3);
+    }
+
+    [Fact]
     public void Cells_are_ordered_left_to_right_then_top_to_bottom()
     {
         var cells = CellGrid.Build(A4, FullBleed(A4), new GridSpec(2, 2));
