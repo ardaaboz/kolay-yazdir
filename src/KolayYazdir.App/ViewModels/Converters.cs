@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using KolayYazdir.Core.Layout;
 using KolayYazdir.Core.Models;
+using KolayYazdir.Printing;
 using ColorMode = KolayYazdir.Core.Models.ColorMode;
 using Orientation = KolayYazdir.Core.Models.Orientation;
 using PixelFormat = System.Drawing.Imaging.PixelFormat;
@@ -38,12 +39,24 @@ public sealed class TurkishLabelConverter : IValueConverter
         ColorMode.Monochrome => "Siyah beyaz",
         DuplexMode.Simplex => "Tek yön",
         DuplexMode.Duplex => "Önlü arkalı",
+        PaperType.Plain => "Düz",
+        PaperType.Thick => "Kalın",
         PagesPerSheet pages => ((int)pages).ToString(CultureInfo.InvariantCulture),
         _ => value?.ToString() ?? string.Empty
     };
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException();
+}
+
+/// <summary>Mantıksal değeri tersine çevirir; "yazdırılırken düğme kapalı" gibi bağlamalar için.</summary>
+public sealed class NotBoolConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is not true;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is not true;
 }
 
 /// <summary>GDI+ bitmap'ini WPF'in gösterebileceği biçime çevirir.</summary>

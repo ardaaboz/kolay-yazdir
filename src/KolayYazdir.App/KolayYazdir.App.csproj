@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\KolayYazdir.Core\KolayYazdir.Core.csproj" />
@@ -19,7 +19,15 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>KolayYazdir</AssemblyName>
     <Version>1.0.0</Version>
+    <ApplicationIcon>Assets\kolay-yazdir.ico</ApplicationIcon>
     <ApplicationTitle>Kolay Yazdır</ApplicationTitle>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\kolay-yazdir.ico" />
+    <Resource Include="Assets\Fonts\Montserrat-Regular.ttf" />
+    <Resource Include="Assets\Fonts\Montserrat-Medium.ttf" />
+    <Resource Include="Assets\Fonts\Montserrat-SemiBold.ttf" />
+  </ItemGroup>
 
 </Project>

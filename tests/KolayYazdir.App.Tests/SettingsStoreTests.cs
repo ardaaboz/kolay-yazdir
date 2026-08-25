@@ -2,6 +2,7 @@ using System.IO;
 using KolayYazdir.App.Services;
 using KolayYazdir.Core.Layout;
 using KolayYazdir.Core.Models;
+using KolayYazdir.Printing;
 using ColorMode = KolayYazdir.Core.Models.ColorMode;
 using Orientation = KolayYazdir.Core.Models.Orientation;
 
@@ -25,6 +26,7 @@ public class SettingsStoreTests : IDisposable
         Assert.False(settings.FitToPage);
         Assert.True(settings.AutoRotate);
         Assert.Equal(1, settings.Copies);
+        Assert.Equal(PaperType.Plain, settings.PaperType);
     }
 
     [Fact]
@@ -40,7 +42,7 @@ public class SettingsStoreTests : IDisposable
             FitToPage = true,
             AutoRotate = false,
             Copies = 5,
-            MediaTypeId = 3,
+            PaperType = PaperType.Thick,
             DefaultFolder = @"D:\Islerim"
         });
 
@@ -54,7 +56,7 @@ public class SettingsStoreTests : IDisposable
         Assert.True(loaded.FitToPage);
         Assert.False(loaded.AutoRotate);
         Assert.Equal(5, loaded.Copies);
-        Assert.Equal(3, loaded.MediaTypeId);
+        Assert.Equal(PaperType.Thick, loaded.PaperType);
         Assert.Equal(@"D:\Islerim", loaded.DefaultFolder);
     }
 

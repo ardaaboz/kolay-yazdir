@@ -14,7 +14,7 @@ using Orientation = KolayYazdir.Core.Models.Orientation;
 
 namespace KolayYazdir.App.ViewModels;
 
-public enum PrintOutcome { Done, NothingToPrint, NoPrinter, NeedsPaperFlip }
+public enum PrintOutcome { Done, NothingToPrint, NoPrinter, NeedsPaperFlip, AlreadyPrinting }
 
 public sealed partial class MainViewModel : ObservableObject, IDisposable
 {
@@ -35,7 +35,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool _autoRotate = true;
     [ObservableProperty] private string _pageRange = string.Empty;
     [ObservableProperty] private int _copies = 1;
-    [ObservableProperty] private MediaType? _mediaType;
+    [ObservableProperty] private PaperType _paperType = PaperType.Plain;
 
     [ObservableProperty] private BitmapSource? _previewImage;
     [ObservableProperty] private string _sheetLabel = string.Empty;
@@ -44,9 +44,25 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool _printerIsHealthy = true;
     [ObservableProperty] private string _bindingHint = string.Empty;
 
+    /// <summary>Baskı sürerken düğme kilitlenir; üst üste basıp aynı işi iki kez göndermeyi önler.</summary>
+    [ObservableProperty] private bool _isPrinting;
+
+    /// <summary>Yazdır düğmesinin üzerindeki yazı.</summary>
+    [ObservableProperty] private string _printButtonLabel = "Yazdır";
+
+    /// <summary>"3 yaprak yazıcıya gönderildi" gibi son iş bildirimi.</summary>
+    [ObservableProperty] private string _lastJobMessage = string.Empty;
+
+    /// <summary>Tek yaprakta ok göstermek gereksiz gürültü.</summary>
+    [ObservableProperty] private bool _hasMultipleSheets;
+
     public ObservableCollection<FileEntry> Files { get; } = [];
 
-    public ObservableCollection<MediaType> MediaTypes { get; } = [];
+    /// <summary>
+    /// Seçilen kağıt cinsinin sürücüdeki karşılığı. Eşleme yanlışsa kullanıcı
+    /// arayüzde görebilsin diye gösteriliyor.
+    /// </summary>
+    [ObservableProperty] private string _mediaTypeHint = string.Empty;
 
     public PrinterCapabilities? Capabilities { get; private set; }
 
@@ -68,8 +84,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         AutoRotate = AutoRotate,
         PageRange = PageRange,
         Copies = Copies,
-        MediaTypeId = MediaType?.Id
+        MediaTypeId = ResolvedMedia?.Id
     };
+
+    /// <summary>Sürücüde seçili kağıt cinsine karşılık gelen girdi.</summary>
+    private MediaType? ResolvedMedia => Capabilities is null
+        ? null
+        : PaperTypeResolver.Resolve(Capabilities.MediaTypes, PaperType);
 
     /// <summary>Sürücü kopyalamayı üstlenmiyorsa yaprakları biz çoğaltırız.</summary>
     public bool DriverHandlesCopies => Capabilities?.SupportsMultipleCopies ?? false;
@@ -81,13 +102,22 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         // Kendi yazdığımız çıktı alanları döngü kurmasın.
         if (e.PropertyName is nameof(PreviewImage) or nameof(SheetLabel) or nameof(JobSummary)
-            or nameof(PrinterStatus) or nameof(PrinterIsHealthy) or nameof(BindingHint)) return;
+            or nameof(PrinterStatus) or nameof(PrinterIsHealthy) or nameof(BindingHint)
+            or nameof(MediaTypeHint) or nameof(IsPrinting) or nameof(PrintButtonLabel)
+            or nameof(LastJobMessage) or nameof(HasMultipleSheets)) return;
+
+        // Yeni bir ayar seçildiğinde eski iş bildirimi yanıltıcı olur.
+        LastJobMessage = string.Empty;
 
         if (e.PropertyName is nameof(PaperSize) or nameof(Orientation)) RefreshCapabilities();
 
         UpdateBindingHint();
+        UpdateMediaTypeHint();
         Rebuild();
     }
+
+    private void UpdateMediaTypeHint() =>
+        MediaTypeHint = ResolvedMedia is { } media ? $"yazıcıda: {media.Name}" : string.Empty;
 
     private void UpdateBindingHint() =>
         BindingHint = Duplex == DuplexMode.Simplex
@@ -121,13 +151,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         PrinterIsHealthy = health.IsHealthy;
         PrinterStatus = $"{name} · {health.Description}";
 
-        if (MediaTypes.Count == 0)
-        {
-            foreach (var media in Capabilities.MediaTypes) MediaTypes.Add(media);
-        }
-
-        // MediaType bir struct; FirstOrDefault boş listede (0, null) döner.
-        if (MediaType is null && MediaTypes.Count > 0) MediaType = MediaTypes[0];
+        UpdateMediaTypeHint();
     }
 
     /// <summary>Yaprakları yeniden hesaplar ve görünen yaprağı çizer.</summary>
@@ -140,6 +164,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             PreviewImage = null;
             SheetLabel = string.Empty;
             JobSummary = string.Empty;
+            HasMultipleSheets = false;
             return;
         }
 
@@ -150,6 +175,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _preview.Load(_sheets);
 
         SheetLabel = _preview.Label;
+        HasMultipleSheets = _sheets.Count > 1;
         JobSummary = $"{LeafCount(_sheets)} yaprak · {_documents.Pages.Count} sayfa";
         DrawCurrentSheet();
     }
@@ -305,10 +331,32 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// </remarks>
     public async Task<PrintOutcome> PrintAsync()
     {
+        // Baskı sürerken ikinci istek gelmesin: aynı işi iki kez basmak
+        // kırtasiyede doğrudan kağıt ve toner kaybı.
+        if (IsPrinting) return PrintOutcome.AlreadyPrinting;
+
         if (_documents is not { } documents || _sheets.Count == 0) return PrintOutcome.NothingToPrint;
 
         var printerName = PrinterCapabilities.DefaultPrinterName;
         if (printerName is null) return PrintOutcome.NoPrinter;
+
+        IsPrinting = true;
+        PrintButtonLabel = "Gönderiliyor…";
+        LastJobMessage = string.Empty;
+
+        try
+        {
+            return await SendAsync(documents, printerName);
+        }
+        finally
+        {
+            IsPrinting = false;
+            PrintButtonLabel = "Yazdır";
+        }
+    }
+
+    private async Task<PrintOutcome> SendAsync(DocumentSet documents, string printerName)
+    {
 
         var runner = new PrintJobRunner(new SheetRenderer(documents));
         var settings = CurrentSettings;
@@ -322,6 +370,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             var driverCopies = DriverHandlesCopies;
 
             await Task.Run(() => runner.Run(sheets, settings, printerName, driverCopies));
+
+            LastJobMessage = DescribeJob(sheets.Count, driverCopies ? Copies : 1);
             return PrintOutcome.Done;
         }
 
@@ -332,10 +382,26 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         await Task.Run(() => runner.Run(plan.FirstPass, simplex, printerName, driverHandlesCopies: false));
 
-        PendingSecondPass = () =>
-            Task.Run(() => runner.Run(plan.SecondPass, simplex, printerName, driverHandlesCopies: false));
+        PendingSecondPass = async () =>
+        {
+            await Task.Run(() => runner.Run(plan.SecondPass, simplex, printerName, driverHandlesCopies: false));
+            LastJobMessage = DescribeJob(plan.FirstPass.Count + plan.SecondPass.Count, 1);
+        };
 
         return PrintOutcome.NeedsPaperFlip;
+    }
+
+    /// <summary>
+    /// Kullanıcı işin yazıcıya gittiğini görmeli. Kağıt sayısı fiziksel yaprak
+    /// değil basılan yüz sayısıdır; tepsiden kaç kağıt çıkacağını söylemek daha
+    /// faydalı olurdu ama önlü arkalıda ikisi farklı, o yüzden ikisini de yazıyoruz.
+    /// </summary>
+    private string DescribeJob(int sides, int copies)
+    {
+        var leaves = Duplex == DuplexMode.Duplex ? (sides + 1) / 2 : sides;
+        var copyNote = copies > 1 ? $", {copies} kopya" : string.Empty;
+
+        return $"{leaves} kağıt yazıcıya gönderildi{copyNote}";
     }
 
     /// <summary>Açılışta son kullanılan ayarları geri yükler.</summary>
@@ -353,12 +419,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         AutoRotate = stored.AutoRotate;
         Copies = stored.Copies;
 
-        RefreshCapabilities();
+        PaperType = stored.PaperType;
 
-        if (stored.MediaTypeId is { } id && MediaTypes.Any(m => m.Id == id))
-        {
-            MediaType = MediaTypes.First(m => m.Id == id);
-        }
+        RefreshCapabilities();
     }
 
     public void PersistSettings() => _settingsStore.Save(new StoredSettings
@@ -372,7 +435,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         FitToPage = FitToPage,
         AutoRotate = AutoRotate,
         Copies = Copies,
-        MediaTypeId = MediaType?.Id
+        PaperType = PaperType
     });
 
     public void Dispose()

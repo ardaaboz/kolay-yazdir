@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using KolayYazdir.Core.Layout;
 using KolayYazdir.Core.Models;
+using KolayYazdir.Printing;
 using ColorMode = KolayYazdir.Core.Models.ColorMode;
 using Orientation = KolayYazdir.Core.Models.Orientation;
 
@@ -20,7 +21,11 @@ public sealed record StoredSettings
     public bool FitToPage { get; init; }
     public bool AutoRotate { get; init; } = true;
     public int Copies { get; init; } = 1;
-    public int? MediaTypeId { get; init; }
+    /// <summary>
+    /// Kağıt cinsi ham sürücü numarası olarak değil, anlam olarak saklanır:
+    /// aynı numara başka bir yazıcıda bambaşka bir kağıdı gösterebilir.
+    /// </summary>
+    public PaperType PaperType { get; init; } = PaperType.Plain;
 }
 
 /// <summary>
