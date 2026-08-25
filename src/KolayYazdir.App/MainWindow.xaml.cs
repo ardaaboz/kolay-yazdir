@@ -7,6 +7,7 @@ using KolayYazdir.App.ViewModels;
 using KolayYazdir.Core.Layout;
 using KolayYazdir.Core.Models;
 using KolayYazdir.Documents;
+using KolayYazdir.Printing;
 using ColorMode = KolayYazdir.Core.Models.ColorMode;
 using Orientation = KolayYazdir.Core.Models.Orientation;
 
@@ -31,6 +32,7 @@ public partial class MainWindow : Window
             PagesPerSheet.One, PagesPerSheet.Two, PagesPerSheet.Four,
             PagesPerSheet.Nine, PagesPerSheet.Sixteen, PagesPerSheet.ThirtyFive
         };
+        PaperTypeSelector.ItemsSource = new object[] { PaperType.Plain, PaperType.Thick };
 
         _viewModel.RestoreSettings();
     }
@@ -123,10 +125,35 @@ public partial class MainWindow : Window
         return (element as ListBoxItem)?.DataContext as FileEntry;
     }
 
+    /// <summary>
+    /// Sol/sağ ok tuşlarıyla sayfa değiştirme. Metin kutusundayken imleci
+    /// hareket ettirmek gerektiği için orada devreye girmiyor.
+    /// </summary>
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
+    {
+        base.OnPreviewKeyDown(e);
+
+        if (e.Handled || Keyboard.FocusedElement is TextBox) return;
+
+        if (e.Key == Key.Left)
+        {
+            _viewModel.PreviousSheetCommand.Execute(null);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Right)
+        {
+            _viewModel.NextSheetCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
     private async void Print_Click(object sender, RoutedEventArgs e)
     {
         switch (await _viewModel.PrintAsync())
         {
+            case PrintOutcome.AlreadyPrinting:
+                break;
+
             case PrintOutcome.NothingToPrint:
                 PickFiles_Click(sender, e);
                 break;

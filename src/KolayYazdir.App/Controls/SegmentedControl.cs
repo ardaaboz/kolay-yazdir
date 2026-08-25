@@ -99,9 +99,9 @@ public sealed class SegmentedControl : ItemsControl
             _value = value;
             Content = owner.LabelConverter?.Convert(
                 value, typeof(string), null, System.Globalization.CultureInfo.CurrentCulture) ?? value;
-            Margin = new Thickness(2, 0, 2, 0);
-            FontSize = 12;
-            Padding = new Thickness(0, 8, 0, 8);
+            Margin = new Thickness(3, 0, 3, 0);
+            FontSize = 14;
+            Padding = new Thickness(0, 11, 0, 11);
             HorizontalContentAlignment = HorizontalAlignment.Center;
             BorderThickness = new Thickness(1);
             Cursor = System.Windows.Input.Cursors.Hand;
@@ -121,7 +121,7 @@ public sealed class SegmentedControl : ItemsControl
         private static ControlTemplate BuildTemplate()
         {
             var border = new FrameworkElementFactory(typeof(Border));
-            border.SetValue(Border.CornerRadiusProperty, new CornerRadius(5));
+            border.SetValue(Border.CornerRadiusProperty, new CornerRadius(9));
             border.SetBinding(Border.BackgroundProperty, FromTemplatedParent(nameof(Background)));
             border.SetBinding(Border.BorderBrushProperty, FromTemplatedParent(nameof(BorderBrush)));
             border.SetBinding(Border.BorderThicknessProperty, FromTemplatedParent(nameof(BorderThickness)));
@@ -129,6 +129,8 @@ public sealed class SegmentedControl : ItemsControl
             var content = new FrameworkElementFactory(typeof(ContentPresenter));
             content.SetValue(HorizontalAlignmentProperty, HorizontalAlignment.Center);
             content.SetValue(VerticalAlignmentProperty, VerticalAlignment.Center);
+            // Padding'i şablona bağlamazsak düğme yüksekliği yazıya yapışık kalır.
+            content.SetBinding(MarginProperty, FromTemplatedParent(nameof(Padding)));
             border.AppendChild(content);
 
             return new ControlTemplate(typeof(SegmentButton)) { VisualTree = border };

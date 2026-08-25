@@ -4,9 +4,11 @@
         xmlns:controls="clr-namespace:KolayYazdir.App.Controls"
         xmlns:vm="clr-namespace:KolayYazdir.App.ViewModels"
         Title="Kolay Yazdır" Height="780" Width="1100" MinHeight="640" MinWidth="920"
+        Icon="Assets/kolay-yazdir.ico"
         Background="{StaticResource Background}" AllowDrop="True"
         DragOver="FileList_DragOver" Drop="FileList_Drop"
-        FontFamily="Segoe UI" UseLayoutRounding="True">
+        FontFamily="{StaticResource AppFont}" FontSize="{StaticResource TextSmall}"
+        UseLayoutRounding="True">
 
   <Window.Resources>
     <vm:TurkishLabelConverter x:Key="Label"/>
@@ -16,9 +18,10 @@
     <Border DockPanel.Dock="Top" Background="{StaticResource Panel}"
             BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="14,10">
       <DockPanel>
-        <TextBlock Text="Yazdır" Foreground="{StaticResource PrimaryText}" FontSize="14" FontWeight="Medium"/>
+        <TextBlock Text="Yazdır" Foreground="{StaticResource PrimaryText}"
+                   FontSize="{StaticResource TextLarge}" FontWeight="Medium"/>
         <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right"
-                   Text="{Binding PrinterStatus}" FontSize="12" VerticalAlignment="Center">
+                   Text="{Binding PrinterStatus}" FontSize="{StaticResource TextSmall}" VerticalAlignment="Center">
           <TextBlock.Style>
             <Style TargetType="TextBlock">
               <Setter Property="Foreground" Value="{StaticResource SecondaryText}"/>
@@ -40,7 +43,7 @@
           <Button Style="{StaticResource AccentButton}" Content="Dosya seç" Click="PickFiles_Click"/>
 
           <Border Margin="0,12,0,0" BorderBrush="{StaticResource ControlLine}" BorderThickness="1"
-                  CornerRadius="6" MinHeight="64" Padding="6">
+                  CornerRadius="10" MinHeight="70" Padding="8">
             <ListBox x:Name="FileList" Background="Transparent" BorderThickness="0"
                      ItemsSource="{Binding Files}" AllowDrop="True"
                      DragOver="FileList_DragOver" Drop="FileList_Drop"
@@ -57,11 +60,11 @@
               <ListBox.ItemTemplate>
                 <DataTemplate>
                   <DockPanel ToolTip="{Binding Path}">
-                    <Button DockPanel.Dock="Right" Content="✕" Width="20" Height="20"
-                            Style="{StaticResource QuietButton}" FontSize="11"
+                    <Button DockPanel.Dock="Right" Content="✕" Width="24" Height="24"
+                            Style="{StaticResource QuietButton}" FontSize="13"
                             Foreground="{StaticResource SecondaryText}"
                             Click="RemoveFile_Click" Tag="{Binding}"/>
-                    <TextBlock DockPanel.Dock="Right" Text="{Binding PageLabel}" FontSize="11"
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding PageLabel}" FontSize="{StaticResource TextTiny}"
                                Margin="6,0" VerticalAlignment="Center">
                       <TextBlock.Style>
                         <Style TargetType="TextBlock">
@@ -74,7 +77,7 @@
                         </Style>
                       </TextBlock.Style>
                     </TextBlock>
-                    <TextBlock Text="{Binding FileName}" FontSize="12" TextTrimming="CharacterEllipsis"
+                    <TextBlock Text="{Binding FileName}" FontSize="{StaticResource TextSmall}" TextTrimming="CharacterEllipsis"
                                VerticalAlignment="Center">
                       <TextBlock.Style>
                         <Style TargetType="TextBlock">
@@ -109,16 +112,13 @@
           <controls:SegmentedControl x:Name="DuplexSelector" LabelConverter="{StaticResource Label}"
                                      SelectedValue="{Binding Duplex, Mode=TwoWay}"/>
           <TextBlock Text="{Binding BindingHint}" Foreground="{StaticResource SecondaryText}"
-                     FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                     FontSize="{StaticResource TextTiny}" Margin="0,5,0,0" TextWrapping="Wrap"/>
 
           <TextBlock Style="{StaticResource SectionLabel}" Margin="0,12,0,5" Text="Kağıt cinsi"/>
-          <ComboBox ItemsSource="{Binding MediaTypes}" SelectedItem="{Binding MediaType, Mode=TwoWay}">
-            <ComboBox.ItemTemplate>
-              <DataTemplate>
-                <TextBlock Text="{Binding Name}"/>
-              </DataTemplate>
-            </ComboBox.ItemTemplate>
-          </ComboBox>
+          <controls:SegmentedControl x:Name="PaperTypeSelector" LabelConverter="{StaticResource Label}"
+                                     SelectedValue="{Binding PaperType, Mode=TwoWay}"/>
+          <TextBlock Text="{Binding MediaTypeHint}" Foreground="{StaticResource SecondaryText}"
+                     FontSize="{StaticResource TextTiny}" Margin="0,5,0,0" TextWrapping="Wrap"/>
 
           <TextBlock Style="{StaticResource SectionLabel}" Margin="0,12,0,5" Text="Sayfaya yerleşim"/>
           <controls:SegmentedControl x:Name="NUpSelector" LabelConverter="{StaticResource Label}"
@@ -160,14 +160,9 @@
       <DockPanel Grid.Row="0" Margin="12,12,12,8">
         <TextBlock Text="Önizleme" Foreground="{StaticResource SecondaryText}" FontSize="11"
                    VerticalAlignment="Center"/>
-        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-          <Button Content="‹" Width="26" Height="24" FontSize="16"
-                  Style="{StaticResource QuietButton}" Command="{Binding PreviousSheetCommand}"/>
-          <TextBlock Text="{Binding SheetLabel}" Margin="8,0" VerticalAlignment="Center"
-                     Foreground="{StaticResource PrimaryText}" FontSize="11"/>
-          <Button Content="›" Width="26" Height="24" FontSize="16"
-                  Style="{StaticResource QuietButton}" Command="{Binding NextSheetCommand}"/>
-        </StackPanel>
+        <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding SheetLabel}"
+                   VerticalAlignment="Center" Foreground="{StaticResource PrimaryText}"
+                   FontSize="{StaticResource TextSmall}"/>
       </DockPanel>
 
       <Border Grid.Row="1" Margin="12,0" Background="{StaticResource PreviewStage}"
@@ -177,18 +172,35 @@
           <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
                       Visibility="{Binding PreviewImage, Converter={StaticResource NullToVisible}}">
             <TextBlock Text="Yazdırmak için dosya seç" Foreground="{StaticResource SecondaryText}"
-                       FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,14"/>
-            <Button Style="{StaticResource AccentButton}" Content="Dosya seç" Padding="22,10"
-                    Click="PickFiles_Click"/>
+                       FontSize="{StaticResource TextLarge}" HorizontalAlignment="Center" Margin="0,0,0,18"/>
+            <Button Style="{StaticResource AccentButton}" Content="Dosya seç" Click="PickFiles_Click"/>
+          </StackPanel>
+
+          <!-- Sayfa okları önizlemenin alt ortasında: fare oradan geçiyor,
+               tezgahta hızlı tıklanması gereken yer burası. -->
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                      Margin="0,0,0,14"
+                      Visibility="{Binding HasMultipleSheets, Converter={StaticResource BoolToVisible}}">
+            <Button Content="‹" Style="{StaticResource PagerButton}"
+                    Command="{Binding PreviousSheetCommand}" ToolTip="Önceki sayfa (Sol ok)"/>
+            <Button Content="›" Style="{StaticResource PagerButton}" Margin="14,0,0,0"
+                    Command="{Binding NextSheetCommand}" ToolTip="Sonraki sayfa (Sağ ok)"/>
           </StackPanel>
         </Grid>
       </Border>
 
-      <DockPanel Grid.Row="2" Margin="12">
-        <TextBlock Text="{Binding JobSummary}" VerticalAlignment="Center"
-                   Foreground="{StaticResource SecondaryText}" FontSize="11"/>
+      <DockPanel Grid.Row="2" Margin="12,14,12,12">
         <Button DockPanel.Dock="Right" HorizontalAlignment="Right" Style="{StaticResource AccentButton}"
-                Content="Yazdır" Padding="30,12" FontSize="14" Click="Print_Click"/>
+                Content="{Binding PrintButtonLabel}" Padding="38,15"
+                FontSize="{StaticResource TextLarge}"
+                IsEnabled="{Binding IsPrinting, Converter={StaticResource NotBool}}"
+                Click="Print_Click"/>
+        <StackPanel VerticalAlignment="Center">
+          <TextBlock Text="{Binding JobSummary}" Foreground="{StaticResource SecondaryText}"
+                     FontSize="{StaticResource TextTiny}"/>
+          <TextBlock Text="{Binding LastJobMessage}" Foreground="{StaticResource Accent}"
+                     FontSize="{StaticResource TextSmall}" Margin="0,3,0,0"/>
+        </StackPanel>
       </DockPanel>
     </Grid>
   </DockPanel>
