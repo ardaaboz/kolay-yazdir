@@ -98,6 +98,67 @@ public class OfficeConverterTests : IDisposable
         Assert.Contains("ikinci", error.Message);
     }
 
+    /// <summary>
+    /// Dükkandaki Word eski ve güvenilmez: görünmez kip pencereleriyle
+    /// dönüşümü düşürüyor. LibreOffice başsız kipte belirlenimci çalışır, o
+    /// yüzden önce o denenmeli; Word son çare olarak kalır.
+    /// </summary>
+    [Fact]
+    public void The_default_chain_tries_libre_office_before_office()
+    {
+        var names = OfficeConverterChain.Default.Links.Select(c => c.Name).ToArray();
+
+        Assert.Equal(["LibreOffice", "Microsoft Office"], names);
+    }
+
+    /// <summary>
+    /// Asıl hata sebebi kullanıcıya ulaşmalı. Eskiden iç istisnanın mesajı
+    /// yutuluyordu ve ekranda sebebi söylemeyen genel bir hata kalıyordu —
+    /// arıza dükkanda elle aranmak zorunda kalındı.
+    /// </summary>
+    [Fact]
+    public async Task The_reported_failure_carries_the_underlying_reason()
+    {
+        var chain = new OfficeConverterChain([
+            new StubConverter("birinci", available: true, throws: true, reason: "RPC_E_CALL_REJECTED")
+        ]);
+
+        var error = await Assert.ThrowsAsync<OfficeConversionException>(
+            () => chain.ToPdfAsync(Docx(), _output, CancellationToken.None));
+
+        Assert.Contains("RPC_E_CALL_REJECTED", error.Message);
+    }
+
+    /// <summary>
+    /// Dönüştürücü beklenmedik bir istisna atarsa (COM katmanı her şeyi
+    /// atabilir) zincir orada kopmamalı, bir sonrakini denemeli.
+    /// </summary>
+    [Fact]
+    public async Task An_unexpected_failure_still_falls_through_to_the_next_converter()
+    {
+        var second = new StubConverter("ikinci", available: true);
+        var chain = new OfficeConverterChain([
+            new StubConverter("birinci", available: true, throwsUnexpected: true),
+            second
+        ]);
+
+        await chain.ToPdfAsync(Docx(), _output, CancellationToken.None);
+
+        Assert.True(second.WasCalled);
+    }
+
+    [Fact]
+    public async Task Cancellation_is_not_swallowed_as_a_conversion_failure()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        var chain = new OfficeConverterChain([new StubConverter("birinci", available: true, throwsCancel: true)]);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => chain.ToPdfAsync(Docx(), _output, cancellation.Token));
+    }
+
     [SkippableFact]
     public async Task LibreOffice_converts_a_docx_to_pdf()
     {
@@ -130,7 +191,13 @@ public class OfficeConverterTests : IDisposable
     // Chain_with_no_available_converter_names_libre_office bunu doğruluyor.
 
     /// <summary>Gerçek bir dosya üreten, çağrıldığını kaydeden sahte dönüştürücü.</summary>
-    private sealed class StubConverter(string name, bool available, bool throws = false) : IOfficeConverter
+    private sealed class StubConverter(
+        string name,
+        bool available,
+        bool throws = false,
+        string? reason = null,
+        bool throwsUnexpected = false,
+        bool throwsCancel = false) : IOfficeConverter
     {
         public bool WasCalled { get; private set; }
         public string Name => name;
@@ -139,7 +206,9 @@ public class OfficeConverterTests : IDisposable
         public Task<string> ToPdfAsync(string sourcePath, string targetDirectory, CancellationToken ct)
         {
             WasCalled = true;
-            if (throws) throw new OfficeConversionException($"{name} başarısız");
+            if (throwsCancel) throw new OperationCanceledException(ct);
+            if (throwsUnexpected) throw new InvalidOperationException($"{name} beklenmedik biçimde çöktü");
+            if (throws) throw new OfficeConversionException(reason ?? $"{name} başarısız");
 
             Directory.CreateDirectory(targetDirectory);
             var path = Path.Combine(targetDirectory, $"{Guid.NewGuid():N}.pdf");

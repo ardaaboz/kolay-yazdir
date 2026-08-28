@@ -1,17 +1,17 @@
 using System.Diagnostics;
-using Microsoft.Win32;
 
 namespace KolayYazdir.Documents.Office;
 
 /// <summary>
-/// LibreOffice'i başsız kipte çalıştırır. Dükkandaki her makinede kurulu olduğu
-/// için garantili yedek yoldur.
+/// LibreOffice'i başsız kipte çalıştırır. Word'ün aksine belirlenimcidir: kip
+/// penceresi açmaz, sürüm farkı gözetmez, hep aynı biçimde davranır. Bu yüzden
+/// zincirin ilk halkasıdır.
 /// </summary>
-public sealed class LibreOfficeConverter : IOfficeConverter
+public sealed class LibreOfficeConverter(LibreOfficeLocator? locator = null) : IOfficeConverter
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromMinutes(3);
 
-    private readonly string? _executable = Locate();
+    private readonly string? _executable = (locator ?? LibreOfficeLocator.Default).Locate();
 
     public string Name => "LibreOffice";
 
@@ -24,11 +24,6 @@ public sealed class LibreOfficeConverter : IOfficeConverter
 
         Directory.CreateDirectory(targetDirectory);
 
-        // Kendi kullanıcı profilimizi veriyoruz: kullanıcının açık LibreOffice
-        // penceresi varsa başsız süreç ona takılıp bize hiç cevap vermez.
-        var profile = Path.Combine(Path.GetTempPath(), "KolayYazdir", "lo-profile");
-        Directory.CreateDirectory(profile);
-
         var startInfo = new ProcessStartInfo(_executable)
         {
             UseShellExecute = false,
@@ -36,9 +31,12 @@ public sealed class LibreOfficeConverter : IOfficeConverter
             RedirectStandardError = true,
             RedirectStandardOutput = true
         };
-        startInfo.ArgumentList.Add($"-env:UserInstallation=file:///{profile.Replace('\\', '/')}");
+
+        startInfo.ArgumentList.Add($"-env:UserInstallation={FileUrl(ProfileDirectory())}");
         startInfo.ArgumentList.Add("--headless");
         startInfo.ArgumentList.Add("--norestore");
+        startInfo.ArgumentList.Add("--nolockcheck");
+        startInfo.ArgumentList.Add("--nodefault");
         startInfo.ArgumentList.Add("--convert-to");
         startInfo.ArgumentList.Add("pdf");
         startInfo.ArgumentList.Add("--outdir");
@@ -47,6 +45,12 @@ public sealed class LibreOfficeConverter : IOfficeConverter
 
         using var process = Process.Start(startInfo)
             ?? throw new OfficeConversionException("LibreOffice başlatılamadı.");
+
+        // Akışlar süreç koşarken boşaltılmalı. Beklemeden önce okumazsak boru
+        // arabelleği dolduğunda LibreOffice yazmaya çalışırken kilitlenir ve
+        // dönüşüm üç dakikalık süre sınırına kadar sessizce asılı kalır.
+        var standardOutput = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
+        var standardError = process.StandardError.ReadToEndAsync(CancellationToken.None);
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(Timeout);
@@ -67,50 +71,57 @@ public sealed class LibreOfficeConverter : IOfficeConverter
         }
 
         var expected = Path.Combine(targetDirectory, Path.GetFileNameWithoutExtension(sourcePath) + ".pdf");
-        if (!File.Exists(expected))
-        {
-            var error = await process.StandardError.ReadToEndAsync(CancellationToken.None);
-            throw new OfficeConversionException(
-                $"LibreOffice dosyayı çeviremedi: {Path.GetFileName(sourcePath)}. {error}".Trim());
-        }
+        if (File.Exists(expected)) return expected;
 
-        return expected;
+        throw new OfficeConversionException(Explain(sourcePath, process.ExitCode,
+            await standardOutput, await standardError));
+    }
+
+    /// <summary>
+    /// Kendi kullanıcı profilimizi veriyoruz: kullanıcının açık LibreOffice
+    /// penceresi varsa başsız süreç ona takılıp bize hiç cevap vermez.
+    ///
+    /// Yol bir dosya URL'sine çevrilirken kaçışlama şart — kırtasiyedeki
+    /// kullanıcı adlarında boşluk ve Türkçe harf var, ham hâlleri URL'yi bozar.
+    /// </summary>
+    private static string ProfileDirectory()
+    {
+        var profile = Path.Combine(Path.GetTempPath(), "KolayYazdir", "lo-profile");
+        Directory.CreateDirectory(profile);
+
+        return profile;
+    }
+
+    /// <summary>
+    /// Yerel yolu dosya URL'sine çevirir, kaçışlamayı doğru yaparak.
+    ///
+    /// Eskiden ters bölü işaretleri elle değiştiriliyordu; kullanıcı adında
+    /// boşluk ya da Türkçe harf olan her makinede ("C:/Users/Arda Boz/...")
+    /// URL bozuluyor, LibreOffice profili kuramıyordu.
+    /// </summary>
+    internal static string FileUrl(string path) => new Uri(path).AbsoluteUri;
+
+    /// <summary>
+    /// Hata mesajı sebebi söylemeli. LibreOffice başarısızlığı çoğu zaman
+    /// standart çıktıya yazar, çıkış kodu yine de sıfır olur.
+    /// </summary>
+    private static string Explain(string sourcePath, int exitCode, string standardOutput, string standardError)
+    {
+        var detail = string.Join(" ",
+            new[] { standardError, standardOutput }
+                .Select(text => text.Trim())
+                .Where(text => text.Length > 0));
+
+        var message = $"LibreOffice dosyayı çeviremedi: {Path.GetFileName(sourcePath)}.";
+
+        if (detail.Length > 0) return $"{message} {detail}";
+
+        return $"{message} LibreOffice {exitCode} koduyla çıktı, sebep bildirmedi.";
     }
 
     private static void TryKill(Process process)
     {
         try { process.Kill(entireProcessTree: true); }
         catch (Exception ex) when (ex is InvalidOperationException or NotSupportedException) { }
-    }
-
-    /// <summary>Kayıt defterinden, sonra bilinen kurulum yollarından arar.</summary>
-    private static string? Locate()
-    {
-        foreach (var view in new[] { RegistryView.Registry64, RegistryView.Registry32 })
-        {
-            try
-            {
-                using var root = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view);
-                using var key = root.OpenSubKey(@"SOFTWARE\LibreOffice\UNO\InstallPath");
-
-                if (key?.GetValue(null) is string installPath)
-                {
-                    var candidate = Path.Combine(installPath, "soffice.exe");
-                    if (File.Exists(candidate)) return candidate;
-                }
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
-            {
-                // Kayıt defteri okunamadıysa dosya sistemine düşüyoruz.
-            }
-        }
-
-        string[] fallbacks =
-        [
-            @"C:\Program Files\LibreOffice\program\soffice.exe",
-            @"C:\Program Files (x86)\LibreOffice\program\soffice.exe"
-        ];
-
-        return fallbacks.FirstOrDefault(File.Exists);
     }
 }

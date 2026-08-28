@@ -29,7 +29,8 @@ Kurulumdan sonra uygulama kendini günceller; bir daha indirmen gerekmez.
 
 - Windows 10 veya üstü
 - Word ve Excel yazdırmak için LibreOffice veya Microsoft Office
-  (ikisi de varsa Office tercih edilir, biçim sadakati daha yüksek)
+  (ikisi de varsa LibreOffice tercih edilir: başsız kipte her makinede aynı
+  davranır, Word otomasyonu sürüme göre kip penceresi açıp dönüşümü düşürebilir)
 
 ## Nasıl çalışıyor
 
@@ -40,7 +41,9 @@ hem yazıcıya `SheetRenderer` ile çizilir — önizlemenin çıktıdan sapmas�
 yüzden yapısal olarak imkansızdır.
 
 Word ve Excel dosyaları önce PDF'e çevrilir, böylece PDF ve görsel dışında
-ayrı bir kod yolu kalmaz.
+ayrı bir kod yolu kalmaz. Dönüşüm sırayla LibreOffice ve Microsoft Office'i
+dener; ikisinin de süre sınırı vardır ve başarısızlık sebebi olduğu gibi
+ekrana taşınır.
 
 ```
 src/KolayYazdir.Core        saf yerleşim matematiği (Windows'a bağlı değil)

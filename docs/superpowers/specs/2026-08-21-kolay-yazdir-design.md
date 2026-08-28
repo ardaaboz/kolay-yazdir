@@ -39,7 +39,7 @@ Yazıcı seçimi (dükkanda tek yazıcı var), tepsi seçimi, zımba/delgi, fili
 |---|---|---|
 | Dil / çatı | C# / .NET 8 / WPF | Windows yazdırma yığınına (DEVMODE, DeviceCapabilities) tam erişim; sürücüye özel kağıt cinsi isimlerini okuyabilen tek pratik yol |
 | PDF ve sayfa render | PDFium | Olgun, hızlı, doğru; Chrome'un kullandığı motor |
-| Word / Excel dönüşümü | Office COM → LibreOffice zinciri | Office varsa en sadık sonuç; yoksa her makinede kurulu olan LibreOffice |
+| Word / Excel dönüşümü | LibreOffice → Office COM zinciri | LibreOffice başsız kipte belirlenimci; Word otomasyonu sürüme göre kip penceresi açıp dönüşümü düşürüyor (bkz. *Revizyon*) |
 | Dağıtım / güncelleme | Velopack | Tek exe kurulum, GitHub Releases'ten sessiz güncelleme, yönetici yetkisi istemez |
 | Test | xUnit | Yerleşim motoru saf fonksiyon olduğu için yazıcısız test edilebilir |
 
@@ -76,7 +76,7 @@ Dosyalar
 
 **DocumentLoader** — Dosya yolunu bir `SourceDocument`'a çevirir. Her `SourcePage` iki şey sunar: nokta cinsinden boyutu, ve istenen DPI'da bitmap üreten bir render metodu. Görseller WIC ile, PDF'ler PDFium ile açılır. Görselin DPI bilgisi yoksa 96 varsayılır (Windows'un davranışı).
 
-**OfficeConverter** — Word/Excel dosyalarını PDF'e çevirir. Sırayla dener: kayıtlı Office COM otomasyonu, sonra LibreOffice (`soffice --headless --convert-to pdf`). LibreOffice yolu kayıt defterinden ve Program Files'tan aranır. Çevrilen PDF geçici klasörde dosya yolu + değişiklik tarihi anahtarıyla önbelleklenir; aynı dosya ikinci kez seçilince anında açılır.
+**OfficeConverter** — Word/Excel dosyalarını PDF'e çevirir. Sırayla dener: LibreOffice (`soffice --headless --convert-to pdf`), sonra Office COM otomasyonu. LibreOffice yolu kayıt defterinden, `ProgramFiles` ortam değişkenlerinden, kullanıcı bazlı kurulum klasöründen ve PATH'ten aranır; `soffice.com` konsol sarmalayıcısı `soffice.exe`'ye tercih edilir çünkü dönüşüm bitene kadar bekler. Her iki yolun da süre sınırı vardır. Çevrilen PDF geçici klasörde dosya yolu + değişiklik tarihi anahtarıyla önbelleklenir; aynı dosya ikinci kez seçilince anında açılır.
 
 **LayoutEngine** — Sistemin kalbi ve tek karmaşık parçası. Girdi: sayfa boyutları listesi + `PrintSettings`. Çıktı: `Sheet[]`. Hiçbir çizim yapmaz, hiçbir dış bağımlılığı yoktur, tamamen test edilebilir.
 
@@ -207,4 +207,43 @@ Sürüm etiketi push edildiğinde bir GitHub Action `vpk pack` çalıştırır v
 
 - **Elle önlü arkalı sayfa sırası** yazıcıya göre değişir; dükkandaki yazıcıda yerinde doğrulanacak.
 - **Sürücü kağıt cinsi isimleri** her sürücüde bulunmayabilir. Sürücü liste vermezse DEVMODE'un standart kağıt cinsi sabitleriyle "Düz / Kalın" eşlemesine düşülür.
-- **Office COM otomasyonu** bazı Office sürümlerinde arka planda çalışırken sorun çıkarabilir; bu yüzden LibreOffice her zaman geçerli bir yedek olarak kalır ve tercih sırası ayarlardan değiştirilebilir.
+- **Office COM otomasyonu** bazı Office sürümlerinde arka planda çalışırken sorun çıkarır — bu risk gerçekleşti, bkz. *Revizyon*. Artık zincirin son halkasıdır ve süre sınırlıdır.
+
+## Revizyon — 2026-08-28: dönüşüm zinciri ters çevrildi
+
+Dükkandaki bir bilgisayarda hiçbir Word dosyası çevrilemedi. Teşhis:
+
+Word otomasyonla açıldığında "Word varsayılan uygulama değil, değiştirilsin
+mi?" kip penceresini çıkarıyordu. `DisplayAlerts` yalnızca belge uyarılarını
+susturur, bu pencereyi kapatmaz; pencere `Visible = false` yüzünden görünmez
+olduğundan kimse kapatamıyordu. Sonraki `Documents.Open` çağrısı meşgul Word
+tarafından `RPC_E_CALL_REJECTED` ile geri çevrildi.
+
+Yedek yol da devreye giremedi: makinede LibreOffice kuruluydu ama arama
+yalnızca tek bir kayıt defteri anahtarına ve iki sabit `C:\Program Files`
+yoluna bakıyordu, kurulum başka yerdeydi.
+
+Hata mesajı da sebebi söylemiyordu: COM istisnası iç istisna olarak
+sarmalanıyor, dışarıya yalnızca "Office dosyayı çeviremedi" çıkıyordu. Arıza
+bu yüzden uzaktan teşhis edilemedi.
+
+Alınan kararlar:
+
+1. **Zincir sırası LibreOffice → Office.** Office'in kenar durumlardaki biçim
+   sadakati bir tık yüksek olabilir, ama LibreOffice başsız kipte her makinede
+   aynı davranır. Belirlenimcilik sadakatten değerli: yanlış çıktı vermek,
+   hiç çıktı vermemekten iyidir ama ikisi de kabul edilemez — asıl mesele
+   dönüşümün *gerçekleşmesi*.
+2. **Office COM'a süre sınırı ve OLE ileti süzgeci.** Görünmez kip penceresi
+   artık zinciri sonsuza kadar donduramaz; reddedilen çağrılar kısa süre
+   yeniden denenir, sonra pes edilir.
+3. **Hata mesajları asıl sebebi taşır.** İç istisna zinciri kullanıcıya çıkan
+   metne katılır; bir sonraki arıza dükkana gidilmeden teşhis edilebilir.
+
+Değerlendirilip **reddedilen** alternatif: dönüşüm motorunu uygulamanın içine
+almak (LibreOffice'i kuruluma gömmek ya da ticari bir .NET kütüphanesi). Sadık
+bir docx→PDF motoru küçük değildir; iLovePDF ve Smallpdf gibi ücretsiz çevrimiçi
+araçlar da bunu sunucularında LibreOffice çalıştırarak yapar. Kurulumu ~350 MB
+büyütmek, dükkanda zaten kurulu olan LibreOffice bulunamadığı için yaşanan bir
+arızaya yanlış çözüm olurdu. Kurulu LibreOffice'i bulamayan bir makineye
+rastlanırsa seçenek yeniden değerlendirilir.

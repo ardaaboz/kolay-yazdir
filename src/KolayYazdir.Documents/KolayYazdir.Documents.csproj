@@ -5,6 +5,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="KolayYazdir.Documents.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="PDFtoImage" Version="5.4.0" />
     <PackageReference Include="System.Drawing.Common" Version="8.0.10" />
   </ItemGroup>
