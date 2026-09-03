@@ -40,6 +40,12 @@ dönük" bilgisini veren bir yaprak listesi üretir. Aynı liste hem önizlemeye
 hem yazıcıya `SheetRenderer` ile çizilir — önizlemenin çıktıdan sapması bu
 yüzden yapısal olarak imkansızdır.
 
+Sol sütundaki yazdırma ayarlarının hepsi aynı anda, kaydırmadan görünür. Bu bir
+yerleşim tercihi değil ölçüye bağlı bir kural: pencerenin en küçük boyu ayar
+bloğunun ölçülen yüksekliğinden türetilir, dolayısıyla yeni bir ayar eklendiğinde
+ya da yazı tipi büyüdüğünde pencere de onunla büyür. Esneyen tek şey dosya
+listesidir; uzayınca kendi içinde kayar, ayarları aşağı itmez.
+
 Word ve Excel dosyaları önce PDF'e çevrilir, böylece PDF ve görsel dışında
 ayrı bir kod yolu kalmaz. Dönüşüm sırayla LibreOffice ve Microsoft Office'i
 dener; ikisinin de süre sınırı vardır ve başarısızlık sebebi olduğu gibi

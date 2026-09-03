@@ -1,0 +1,97 @@
+<UserControl x:Class="KolayYazdir.App.Controls.SettingsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:KolayYazdir.App.Controls"
+             xmlns:vm="clr-namespace:KolayYazdir.App.ViewModels"
+             FontFamily="{StaticResource AppFont}" FontSize="{StaticResource TextSmall}">
+
+  <UserControl.Resources>
+    <vm:TurkishLabelConverter x:Key="Label"/>
+    <vm:EmptyToCollapsedConverter x:Key="EmptyToCollapsed"/>
+  </UserControl.Resources>
+
+  <!-- Etiketler solda, seçenekler sağda: her ayar tek satıra sığdığı için
+       hepsi aynı anda görünür, tezgahta kaydırmaya gerek kalmaz. -->
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="92"/>
+      <ColumnDefinition Width="10"/>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource RowLabel}" Text="Kağıt boyutu"/>
+    <controls:SegmentedControl Grid.Row="0" Grid.Column="2" x:Name="PaperSelector" Margin="0,0,0,6"
+                               LabelConverter="{StaticResource Label}"
+                               SelectedValue="{Binding PaperSize, Mode=TwoWay}"/>
+
+    <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource RowLabel}" Text="Yön"/>
+    <controls:SegmentedControl Grid.Row="1" Grid.Column="2" x:Name="OrientationSelector" Margin="0,0,0,6"
+                               LabelConverter="{StaticResource Label}"
+                               SelectedValue="{Binding Orientation, Mode=TwoWay}"/>
+
+    <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource RowLabel}" Text="Renk"/>
+    <controls:SegmentedControl Grid.Row="2" Grid.Column="2" x:Name="ColorSelector" Margin="0,0,0,6"
+                               LabelConverter="{StaticResource Label}"
+                               SelectedValue="{Binding Color, Mode=TwoWay}"/>
+
+    <TextBlock Grid.Row="3" Grid.Column="0" Style="{StaticResource RowLabel}" Text="Yüz"/>
+    <controls:SegmentedControl Grid.Row="3" Grid.Column="2" x:Name="DuplexSelector" Margin="0,0,0,3"
+                               LabelConverter="{StaticResource Label}"
+                               SelectedValue="{Binding Duplex, Mode=TwoWay}"/>
+    <!-- İpucu satırları boşken tamamen kapanır; yoksa her ayar için kalıcı
+         bir boşluk ayırmak bloğu ekrandan taşırırdı. -->
+    <TextBlock Grid.Row="4" Grid.Column="2" Style="{StaticResource RowHint}"
+               Text="{Binding BindingHint}"
+               Visibility="{Binding BindingHint, Converter={StaticResource EmptyToCollapsed}}"/>
+
+    <TextBlock Grid.Row="5" Grid.Column="0" Style="{StaticResource RowLabel}" Text="Kağıt cinsi"/>
+    <controls:SegmentedControl Grid.Row="5" Grid.Column="2" x:Name="PaperTypeSelector" Margin="0,0,0,3"
+                               LabelConverter="{StaticResource Label}"
+                               SelectedValue="{Binding PaperType, Mode=TwoWay}"/>
+    <TextBlock Grid.Row="6" Grid.Column="2" Style="{StaticResource RowHint}"
+               Text="{Binding MediaTypeHint}"
+               Visibility="{Binding MediaTypeHint, Converter={StaticResource EmptyToCollapsed}}"/>
+
+    <TextBlock Grid.Row="7" Grid.Column="0" Style="{StaticResource RowLabel}" Text="Sayfaya yerleşim"/>
+    <controls:SegmentedControl Grid.Row="7" Grid.Column="2" x:Name="NUpSelector"
+                               LabelConverter="{StaticResource Label}"
+                               SelectedValue="{Binding PagesPerSheet, Mode=TwoWay}"/>
+
+    <CheckBox Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,12,0,0"
+              Content="Sayfaya sığdır" IsChecked="{Binding FitToPage, Mode=TwoWay}"
+              ToolTip="Kapalıyken içerik gerçek boyutunda basılır, sadece taşarsa küçültülür."/>
+    <CheckBox Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,8,0,0"
+              Content="İçeriği hücreye göre döndür"
+              IsChecked="{Binding AutoRotate, Mode=TwoWay}"/>
+
+    <Grid Grid.Row="10" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,12,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="10"/>
+        <ColumnDefinition Width="86"/>
+      </Grid.ColumnDefinitions>
+      <StackPanel Grid.Column="0">
+        <TextBlock Style="{StaticResource SectionLabel}" Text="Sayfa aralığı"/>
+        <TextBox Text="{Binding PageRange, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                 ToolTip="Örnek: 1-5, 8, 11-13. Boş bırakılırsa tümü basılır."/>
+      </StackPanel>
+      <StackPanel Grid.Column="2">
+        <TextBlock Style="{StaticResource SectionLabel}" Text="Kopya"/>
+        <TextBox Text="{Binding Copies, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+      </StackPanel>
+    </Grid>
+  </Grid>
+</UserControl>

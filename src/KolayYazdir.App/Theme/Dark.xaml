@@ -8,8 +8,10 @@
   <BooleanToVisibilityConverter x:Key="BoolToVisible"/>
 
   <!-- Montserrat gömülü geliyor; makinede kurulu olması gerekmiyor.
-       Yoldaki '#' ve aile adı WPF'in gömülü font sözdizimi. -->
-  <FontFamily x:Key="AppFont">pack://application:,,,/Assets/Fonts/#Montserrat</FontFamily>
+       Yoldaki '#' ve aile adı WPF'in gömülü font sözdizimi. Derleme adı yolda
+       açıkça yazıyor: aksi hâlde font, temayı hangi derleme yüklüyorsa orada
+       aranır ve sessizce yedek fonta düşülür. -->
+  <FontFamily x:Key="AppFont">pack://application:,,,/KolayYazdir;component/Assets/Fonts/#Montserrat</FontFamily>
 
   <system:Double x:Key="TextTiny">12</system:Double>
   <system:Double x:Key="TextSmall">14</system:Double>
@@ -32,6 +34,18 @@
     <Setter Property="Foreground" Value="{StaticResource SecondaryText}"/>
     <Setter Property="FontSize" Value="{StaticResource TextTiny}"/>
     <Setter Property="Margin" Value="0,0,0,7"/>
+  </Style>
+
+  <!-- Ayar satırlarının sol sütunu: etiket seçeneklerin hizasında durur. -->
+  <Style x:Key="RowLabel" TargetType="TextBlock" BasedOn="{StaticResource SectionLabel}">
+    <Setter Property="Margin" Value="0,0,0,6"/>
+    <Setter Property="TextWrapping" Value="Wrap"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+
+  <Style x:Key="RowHint" TargetType="TextBlock" BasedOn="{StaticResource SectionLabel}">
+    <Setter Property="Margin" Value="2,0,0,4"/>
+    <Setter Property="TextWrapping" Value="Wrap"/>
   </Style>
 
   <Style x:Key="AccentButton" TargetType="Button">
@@ -136,7 +150,10 @@
           <Border x:Name="Root" Background="{TemplateBinding Background}"
                   BorderBrush="{TemplateBinding BorderBrush}"
                   BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10">
-            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+            <!-- Padding'i buraya ayrıca bağlamıyoruz: TextBox onu zaten
+                 PART_ContentHost'a geçiriyor, iki kez uygulanınca kutu
+                 gereğinden yirmi piksel uzuyordu. -->
+            <ScrollViewer x:Name="PART_ContentHost"/>
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsKeyboardFocused" Value="True">

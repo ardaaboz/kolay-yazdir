@@ -3,13 +3,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using KolayYazdir.App.Controls;
 using KolayYazdir.App.ViewModels;
-using KolayYazdir.Core.Layout;
-using KolayYazdir.Core.Models;
 using KolayYazdir.Documents;
 using KolayYazdir.Printing;
-using ColorMode = KolayYazdir.Core.Models.ColorMode;
-using Orientation = KolayYazdir.Core.Models.Orientation;
 
 namespace KolayYazdir.App;
 
@@ -23,18 +20,54 @@ public partial class MainWindow : Window
         InitializeComponent();
         DataContext = _viewModel;
 
-        PaperSelector.ItemsSource = new object[] { PaperFormat.A4, PaperFormat.A5, PaperFormat.A3 };
-        OrientationSelector.ItemsSource = new object[] { Orientation.Portrait, Orientation.Landscape };
-        ColorSelector.ItemsSource = new object[] { ColorMode.Color, ColorMode.Monochrome };
-        DuplexSelector.ItemsSource = new object[] { DuplexMode.Simplex, DuplexMode.Duplex };
-        NUpSelector.ItemsSource = new object[]
-        {
-            PagesPerSheet.One, PagesPerSheet.Two, PagesPerSheet.Four,
-            PagesPerSheet.Nine, PagesPerSheet.Sixteen, PagesPerSheet.ThirtyFive
-        };
-        PaperTypeSelector.ItemsSource = new object[] { PaperType.Plain, PaperType.Thick };
-
         _viewModel.RestoreSettings();
+
+        Loaded += (_, _) =>
+        {
+            LockSettingsIntoView();
+            FitIntoWorkArea();
+        };
+        // İpucu satırları açılıp kapandıkça blok büyüyüp küçülüyor; taban
+        // yükseklik onunla birlikte güncellenmeli.
+        Settings.SizeChanged += (_, _) => LockSettingsIntoView();
+    }
+
+    /// <summary>
+    /// Ayarların kaydırmadan görünmesini pencerenin en küçük boyuna bağlar:
+    /// blok ne kadar yer istiyorsa taban o kadar yükselir. Sayı elle yazılmadığı
+    /// için yazı tipi, DPI ya da yeni bir ayar satırı kuralı bozamaz.
+    /// </summary>
+    private void LockSettingsIntoView()
+    {
+        UpdateLayout();
+
+        // Sol sütunun dışında kalan her şey: başlık çubuğu, kenarlıklar, üst şerit.
+        var chrome = ActualHeight - Sidebar.ActualHeight;
+        if (chrome <= 0 || Settings.ActualHeight <= 0) return;
+
+        MinHeight = Math.Ceiling(
+            chrome + SidebarMetrics.RequiredHeight(PickButton.ActualHeight, Settings.ActualHeight));
+
+        if (Height < MinHeight) Height = MinHeight;
+    }
+
+    /// <summary>
+    /// Pencereyi ekranın çalışma alanına sığdırır. Windows açılış boyunu ekrana
+    /// göre kırpıyor ama görev çubuğunu hesaba katmıyor: yüksek çözünürlüklü bir
+    /// ekranda pencerenin alt şeridi çubuğun altında kalıyor, oradaki ayar da
+    /// görünmez oluyordu.
+    /// </summary>
+    private void FitIntoWorkArea()
+    {
+        var work = SystemParameters.WorkArea;
+
+        if (ActualHeight > work.Height) Height = work.Height;
+        if (ActualWidth > work.Width) Width = work.Width;
+
+        UpdateLayout();
+
+        Top = Math.Max(work.Top, Math.Min(Top, work.Bottom - ActualHeight));
+        Left = Math.Max(work.Left, Math.Min(Left, work.Right - ActualWidth));
     }
 
     private async void PickFiles_Click(object sender, RoutedEventArgs e)

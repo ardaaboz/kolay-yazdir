@@ -101,7 +101,7 @@ public sealed class SegmentedControl : ItemsControl
                 value, typeof(string), null, System.Globalization.CultureInfo.CurrentCulture) ?? value;
             Margin = new Thickness(3, 0, 3, 0);
             FontSize = 14;
-            Padding = new Thickness(0, 11, 0, 11);
+            Padding = new Thickness(0, 9, 0, 9);
             HorizontalContentAlignment = HorizontalAlignment.Center;
             BorderThickness = new Thickness(1);
             Cursor = System.Windows.Input.Cursors.Hand;
