@@ -139,6 +139,28 @@
             <Button Content="›" Style="{StaticResource PagerButton}" Margin="14,0,0,0"
                     Command="{Binding NextSheetCommand}" ToolTip="Sonraki sayfa (Sağ ok)"/>
           </StackPanel>
+
+          <!-- Yazdırıldı kartı. İş gidince ekranda değişen tek şey köşedeki bir
+               satırdı ve kullanıcı bunu fark etmediğini söyledi: kart Yazdır
+               düğmesinin tam üstünde açılır, Tamam'a basılana kadar durur. -->
+          <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,16,16"
+                  Background="{StaticResource ControlBackground}" BorderBrush="{StaticResource Accent}"
+                  BorderThickness="1" CornerRadius="10" Padding="16,12"
+                  Visibility="{Binding JobNoticeVisible, Converter={StaticResource BoolToVisible}}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="✓" Foreground="{StaticResource Accent}" FontSize="22" FontWeight="Medium"
+                         VerticalAlignment="Center" Margin="0,0,12,0"/>
+              <StackPanel VerticalAlignment="Center" Margin="0,0,18,0">
+                <TextBlock Text="Yazdırıldı" Foreground="{StaticResource PrimaryText}"
+                           FontSize="{StaticResource TextBody}" FontWeight="Medium"/>
+                <TextBlock Text="{Binding LastJobMessage}" Foreground="{StaticResource SecondaryText}"
+                           FontSize="{StaticResource TextTiny}" Margin="0,2,0,0"/>
+              </StackPanel>
+              <Button Content="Tamam" Style="{StaticResource AccentButton}" Padding="22,9"
+                      FontSize="{StaticResource TextSmall}" VerticalAlignment="Center"
+                      Command="{Binding DismissJobNoticeCommand}"/>
+            </StackPanel>
+          </Border>
         </Grid>
       </Border>
 

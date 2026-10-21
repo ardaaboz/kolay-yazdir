@@ -160,6 +160,66 @@ public class PrintFeedbackTests : IDisposable
         Assert.NotEqual(plainId, thickId);
     }
 
+    [Fact]
+    public void A_sent_job_shows_the_printed_notice()
+    {
+        using var viewModel = new MainViewModel();
+
+        viewModel.CompleteJob(sides: 2, copies: 1);
+
+        // Köşedeki satırı kullanıcı fark etmiyor; kart ekranda duruyor.
+        Assert.True(viewModel.JobNoticeVisible);
+        Assert.Equal("2 kağıt yazıcıya gönderildi", viewModel.LastJobMessage);
+    }
+
+    [Fact]
+    public void A_sent_job_resets_the_copy_count_to_one()
+    {
+        using var viewModel = new MainViewModel();
+        viewModel.Copies = 3;
+
+        viewModel.CompleteJob(sides: 3, copies: 3);
+
+        // Ekranda kalan "3" yüzünden sıradaki işin de üç kez basıldığı oldu.
+        Assert.Equal(1, viewModel.Copies);
+    }
+
+    [Fact]
+    public void Resetting_the_copy_count_does_not_swallow_the_notice()
+    {
+        using var viewModel = new MainViewModel();
+        viewModel.Copies = 4;
+
+        viewModel.CompleteJob(sides: 4, copies: 4);
+
+        // Kopya sayısı da bir ayardır: sıfırlama mesajdan sonra yapılırsa
+        // "eski bildirimi sil" kuralı devreye girer ve geri bildirim uçar.
+        Assert.True(viewModel.JobNoticeVisible);
+        Assert.Contains("4 kopya", viewModel.LastJobMessage);
+    }
+
+    [Fact]
+    public void The_ok_button_dismisses_the_notice()
+    {
+        using var viewModel = new MainViewModel();
+        viewModel.CompleteJob(sides: 1, copies: 1);
+
+        viewModel.DismissJobNoticeCommand.Execute(null);
+
+        Assert.False(viewModel.JobNoticeVisible);
+    }
+
+    [Fact]
+    public void Changing_a_setting_hides_a_stale_notice()
+    {
+        using var viewModel = new MainViewModel();
+        viewModel.CompleteJob(sides: 1, copies: 1);
+
+        viewModel.PaperType = PaperType.Thick;
+
+        Assert.False(viewModel.JobNoticeVisible);
+    }
+
     public void Dispose()
     {
         foreach (var path in _temporaryFiles)

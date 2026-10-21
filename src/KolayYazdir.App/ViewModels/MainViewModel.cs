@@ -53,6 +53,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>"3 yaprak yazıcıya gönderildi" gibi son iş bildirimi.</summary>
     [ObservableProperty] private string _lastJobMessage = string.Empty;
 
+    /// <summary>
+    /// Ekranda duran "Yazdırıldı" kartı. Köşedeki tek satır yetmiyor: kullanıcı
+    /// işin gittiğini hissetmediğini söyledi, kart Tamam'a basılana kadar durur.
+    /// </summary>
+    [ObservableProperty] private bool _jobNoticeVisible;
+
     /// <summary>Tek yaprakta ok göstermek gereksiz gürültü.</summary>
     [ObservableProperty] private bool _hasMultipleSheets;
 
@@ -104,10 +110,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (e.PropertyName is nameof(PreviewImage) or nameof(SheetLabel) or nameof(JobSummary)
             or nameof(PrinterStatus) or nameof(PrinterIsHealthy) or nameof(BindingHint)
             or nameof(MediaTypeHint) or nameof(IsPrinting) or nameof(PrintButtonLabel)
-            or nameof(LastJobMessage) or nameof(HasMultipleSheets)) return;
+            or nameof(LastJobMessage) or nameof(JobNoticeVisible)
+            or nameof(HasMultipleSheets)) return;
 
         // Yeni bir ayar seçildiğinde eski iş bildirimi yanıltıcı olur.
         LastJobMessage = string.Empty;
+        JobNoticeVisible = false;
 
         if (e.PropertyName is nameof(PaperSize) or nameof(Orientation)) RefreshCapabilities();
 
@@ -244,6 +252,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         DrawCurrentSheet();
     }
 
+    /// <summary>Bildirim kartındaki Tamam düğmesi.</summary>
+    [RelayCommand]
+    private void DismissJobNotice() => JobNoticeVisible = false;
+
     public async Task AddFilesAsync(IEnumerable<string> paths, CancellationToken ct)
     {
         var incoming = paths.Where(DocumentLoader.IsSupported).ToList();
@@ -361,6 +373,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         var runner = new PrintJobRunner(new SheetRenderer(documents));
         var settings = CurrentSettings;
 
+        // Kopya sayısı iş gönderilince 1'e döndüğü için önceden alınıyor.
+        var copies = Copies;
+
         var needsManualDuplex = settings.Duplex == DuplexMode.Duplex
             && Capabilities is { SupportsAutomaticDuplex: false };
 
@@ -371,21 +386,25 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
             await Task.Run(() => runner.Run(sheets, settings, printerName, driverCopies));
 
-            LastJobMessage = DescribeJob(sheets.Count, driverCopies ? Copies : 1);
+            CompleteJob(sheets.Count, driverCopies ? copies : 1);
             return PrintOutcome.Done;
         }
 
         // İki geçişli baskıda kopyayı sürücüye bırakamayız: sürücü her geçişi
         // ayrı çoğaltır ve deste sırası bozulur.
-        var plan = ManualDuplexPlan.Split(LayoutEngine.Repeat(_sheets, Copies));
+        var plan = ManualDuplexPlan.Split(LayoutEngine.Repeat(_sheets, copies));
         var simplex = settings with { Duplex = DuplexMode.Simplex, Copies = 1 };
 
         await Task.Run(() => runner.Run(plan.FirstPass, simplex, printerName, driverHandlesCopies: false));
 
+        // Ön yüzler kağıda gitti. Kullanıcı çevirme penceresini iptal etse bile
+        // bu iş gönderilmiş sayılır; kopya sayısı burada düşer.
+        ResetCopies();
+
         PendingSecondPass = async () =>
         {
             await Task.Run(() => runner.Run(plan.SecondPass, simplex, printerName, driverHandlesCopies: false));
-            LastJobMessage = DescribeJob(plan.FirstPass.Count + plan.SecondPass.Count, 1);
+            CompleteJob(plan.FirstPass.Count + plan.SecondPass.Count, 1);
         };
 
         return PrintOutcome.NeedsPaperFlip;
@@ -403,6 +422,29 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         return $"{leaves} kağıt yazıcıya gönderildi{copyNote}";
     }
+
+    /// <summary>
+    /// İş gönderildikten sonraki temizlik: kopya sayısı 1'e döner ve ekranda
+    /// "Yazdırıldı" kartı açılır. Yazıcıya gerçekten iş göndermeden
+    /// sınanabilsin diye baskı akışından ayrı duruyor.
+    /// </summary>
+    /// <param name="sides">Yazıcıya gönderilen yüz sayısı.</param>
+    /// <param name="copies">Çoğaltmayı sürücü üstlendiyse kopya sayısı, yoksa 1.</param>
+    public void CompleteJob(int sides, int copies)
+    {
+        ResetCopies();
+
+        // Mesaj sıfırlamadan sonra yazılır: kopya sayısı da bir ayardır, her
+        // ayar değişikliği eski bildirimi sildiği için sıra tersse mesaj uçar.
+        LastJobMessage = DescribeJob(sides, copies);
+        JobNoticeVisible = true;
+    }
+
+    /// <summary>
+    /// Kopya sayısını 1'e döndürür. Ekranda kalan "3" yüzünden sıradaki işin de
+    /// üç kez basıldığı oldu; kağıt ve toner doğrudan zarar.
+    /// </summary>
+    private void ResetCopies() => Copies = 1;
 
     /// <summary>Açılışta son kullanılan ayarları geri yükler.</summary>
     public void RestoreSettings()

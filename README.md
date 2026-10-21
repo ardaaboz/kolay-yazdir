@@ -14,8 +14,14 @@ kullanılan seçenekleri bırakır.
 - Bir sayfaya 1 / 2 / 4 / 9 / 16 / 35 sayfa yerleştirir
 - Sayfaya sığdır seçeneği (varsayılan **kapalı**: içerik gerçek boyutunda
   basılır, sadece taşarsa küçültülür — vesikalık gibi ölçüsü önemli işler
-  bozulmaz)
-- Sayfa aralığı ve kopya sayısı
+  bozulmaz). Standart bir belge sayfası daha büyük bir kağıda verildiğinde
+  (A4 belge → A3 kağıt) seçenek kapalı olsa da büyütülür: A3'ün ortasında A4
+  boyunda bir baskı ve çepeçevre boş kağıt kimsenin istediği şey değil.
+  Ölçüsü kendine özgü içerik (vesikalık, etiket) bu istisnaya girmez.
+- Sayfa aralığı ve kopya sayısı — iş gönderilince kopya sayısı 1'e döner,
+  sıradaki iş yanlışlıkla çoğaltılmaz
+- Yazdırdıktan sonra ekranda "Yazdırıldı" kartı: kaç kağıt gittiğini söyler,
+  Tamam'a basılana kadar durur (Enter ve Esc de kapatır)
 - Canlı önizleme — ekranda gördüğün, kağıda çıkanın ta kendisi
 
 ## Kurulum

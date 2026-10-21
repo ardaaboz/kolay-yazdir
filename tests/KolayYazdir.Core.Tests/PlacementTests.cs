@@ -115,4 +115,31 @@ public class PlacementTests
         Assert.Equal(0, placed.Destination.Width, 3);
         Assert.Equal(0, placed.Destination.Height, 3);
     }
+
+    /// <summary>
+    /// Kullanıcı "A3 seçince sayfanın büyük kısmı boş kalıyor" dedi. Standart
+    /// bir belge sayfası daha büyük bir kağıda verildiğinde amaç büyütmektir.
+    /// </summary>
+    [Fact]
+    public void An_a4_page_fills_a_bigger_sheet_even_when_fit_is_off()
+    {
+        var a4 = Paper.SizeOf(PaperFormat.A4, Orientation.Portrait);
+        var a3Cell = new RectPt(0, 0, Paper.MmToPt(287), Paper.MmToPt(410));
+
+        var placed = Placement.Fit(0, a4, a3Cell, fitToPage: false, autoRotate: true);
+
+        Assert.Equal(Paper.MmToPt(287), placed.Destination.Width, 3);
+    }
+
+    [Fact]
+    public void A_passport_photo_keeps_its_real_size_on_a_bigger_sheet()
+    {
+        var photo = new SizePt(Paper.MmToPt(35), Paper.MmToPt(45));
+        var a3Cell = new RectPt(0, 0, Paper.MmToPt(287), Paper.MmToPt(410));
+
+        var placed = Placement.Fit(0, photo, a3Cell, fitToPage: false, autoRotate: true);
+
+        // Ölçüsü kendine özgü içerik büyütme istisnasına girmez.
+        Assert.Equal(Paper.MmToPt(35), placed.Destination.Width, 3);
+    }
 }

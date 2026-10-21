@@ -29,7 +29,12 @@ public static class Placement
 
         // Sığdırma kapalıyken gerçek boyut korunur: sadece taşıyorsa küçültülür,
         // asla büyütülmez. Vesikalık gibi ölçüsü önemli işler bozulmasın.
-        if (!fitToPage) scale = Math.Min(scale, 1.0);
+        //
+        // Tek istisna kaynağın kendisinin standart bir belge sayfası olması:
+        // A4 bir belgeyi A3'e veren kişi onu büyütmek ister, A3'ün ortasında
+        // A4 boyunda bir baskı ve çepeçevre boş kağıt kimsenin istediği şey
+        // değil. Ölçüsü kendine özgü içerik bu istisnaya girmez.
+        if (!fitToPage && !Paper.IsStandardDocumentSize(source)) scale = Math.Min(scale, 1.0);
 
         var width = effective.Width * scale;
         var height = effective.Height * scale;

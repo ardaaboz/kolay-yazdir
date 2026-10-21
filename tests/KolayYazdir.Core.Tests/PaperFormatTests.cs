@@ -32,4 +32,35 @@ public class PaperFormatTests
     {
         Assert.Equal(72.0, Paper.MmToPt(25.4), 6);
     }
+
+    [Theory]
+    [InlineData(210, 297)] // A4
+    [InlineData(297, 210)] // yatay A4
+    [InlineData(148, 210)] // A5
+    [InlineData(297, 420)] // A3
+    [InlineData(216, 279)] // Letter
+    public void A_standard_document_size_is_recognised(double widthMm, double heightMm)
+    {
+        var size = new SizePt(Paper.MmToPt(widthMm), Paper.MmToPt(heightMm));
+
+        Assert.True(Paper.IsStandardDocumentSize(size));
+    }
+
+    [Fact]
+    public void A_rounded_a4_is_still_recognised()
+    {
+        // PDF üreticileri A4'ü 595x842 punto diye yuvarlar.
+        Assert.True(Paper.IsStandardDocumentSize(new SizePt(595, 842)));
+    }
+
+    [Theory]
+    [InlineData(35, 45)]   // vesikalık
+    [InlineData(100, 150)] // fotoğraf baskısı
+    [InlineData(80, 80)]   // kare etiket
+    public void Content_with_its_own_measurements_is_not_a_document_size(double widthMm, double heightMm)
+    {
+        var size = new SizePt(Paper.MmToPt(widthMm), Paper.MmToPt(heightMm));
+
+        Assert.False(Paper.IsStandardDocumentSize(size));
+    }
 }

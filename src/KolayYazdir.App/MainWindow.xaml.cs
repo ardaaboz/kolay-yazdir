@@ -166,7 +166,18 @@ public partial class MainWindow : Window
     {
         base.OnPreviewKeyDown(e);
 
-        if (e.Handled || Keyboard.FocusedElement is TextBox) return;
+        if (e.Handled) return;
+
+        // Bildirim kartı açıkken Enter ve Esc onu kapatır: el klavyedeyse
+        // tezgahta fareye uzanmak zaman kaybı.
+        if (_viewModel.JobNoticeVisible && e.Key is Key.Enter or Key.Escape)
+        {
+            _viewModel.DismissJobNoticeCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
+
+        if (Keyboard.FocusedElement is TextBox) return;
 
         if (e.Key == Key.Left)
         {
